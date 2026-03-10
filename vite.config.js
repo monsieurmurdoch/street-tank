@@ -17,7 +17,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '/tmp/street-tank-dist',
+    outDir: '../dist',
     emptyOutDir: true
   }
 });
