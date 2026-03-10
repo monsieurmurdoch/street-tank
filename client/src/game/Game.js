@@ -230,28 +230,32 @@ class Game {
     // Disable depth test against terrain since globe is hidden
     this.scene.globe.depthTestAgainstTerrain = false;
 
-    // Load Google Photorealistic 3D Tiles
-    if (this.apiKey) {
+    // Load Google Photorealistic 3D Tiles (skip for arenas like The Void)
+    if (this.apiKey && !this.arena.noTiles) {
       try {
         const tileset = await Cesium.Cesium3DTileset.fromUrl(
           `https://tile.googleapis.com/v1/3dtiles/root.json?key=${this.apiKey}`,
           {
             showCreditsOnScreen: true,
-            maximumScreenSpaceError: 16,  // Relaxed detail to ensure basic geometry loads
-            maximumMemoryUsage: 2048      // Allow more memory
+            maximumScreenSpaceError: 16,
+            maximumMemoryUsage: 2048
           }
         );
         this.scene.primitives.add(tileset);
-        this.tileset = tileset;  // Store reference for readiness checks
+        this.tileset = tileset;
         this.has3DTiles = true;
         console.log('Google 3D Tiles loaded');
       } catch (error) {
         console.warn('Google 3D Tiles failed to load:', error.message);
-        console.warn('Playing with standard globe. Check your API key and enable Map Tiles API.');
         this.has3DTiles = false;
       }
     } else {
-      console.warn('No Google Maps API key provided. Playing with standard globe.');
+      if (this.arena.noTiles) {
+        console.log('Arena has no tiles — showing starfield');
+        this.scene.skyAtmosphere.show = false; // No atmosphere in space
+      } else {
+        console.warn('No Google Maps API key provided.');
+      }
       this.has3DTiles = false;
     }
 

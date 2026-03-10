@@ -1,0 +1,55 @@
+{
+    "id": "void",
+    "name": "The Void",
+    "groundLevel": 0,
+    "noTiles": true,
+    "bounds": {
+        "south": -1,
+        "west": -1,
+        "north": 1,
+        "east": 1
+    },
+    "buildings": [],
+    "spawns": [
+        {
+            "lon": 0,
+            "lat": 0,
+            "height": 100000
+        },
+        {
+            "lon": 0.001,
+            "lat": 0.001,
+            "height": 100000
+        },
+        {
+            "lon": -0.001,
+            "lat": 0.001,
+            "height": 100000
+        },
+        {
+            "lon": 0.001,
+            "lat": -0.001,
+            "height": 100000
+        },
+        {
+            "lon": -0.001,
+            "lat": -0.001,
+            "height": 100000
+        },
+        {
+            "lon": 0.002,
+            "lat": 0,
+            "height": 100000
+        },
+        {
+            "lon": -0.002,
+            "lat": 0,
+            "height": 100000
+        },
+        {
+            "lon": 0,
+            "lat": 0.002,
+            "height": 100000
+        }
+    ]
+}

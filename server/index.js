@@ -55,7 +55,7 @@ function getOrCreateArena(arenaId) {
 }
 
 // Pre-create all arenas
-['manhattan', 'sf', 'london'].forEach(id => getOrCreateArena(id));
+['manhattan', 'sf', 'london', 'void'].forEach(id => getOrCreateArena(id));
 
 // ─── Connection Handler ──────────────────────────────────────
 io.on('connection', (socket) => {

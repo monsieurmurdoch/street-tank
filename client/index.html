@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
   <link href="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
   <link rel="stylesheet" href="/src/styles/main.css">
 </head>
+
 <body>
   <div id="app">
     <!-- Loading Screen -->
@@ -41,6 +43,10 @@
             <button class="arena-card" data-arena="london">
               <h3>London</h3>
               <p>City of London</p>
+            </button>
+            <button class="arena-card" data-arena="void">
+              <h3>The Void</h3>
+              <p>Fight Among the Stars</p>
             </button>
           </div>
         </div>
@@ -78,12 +84,13 @@
         <!-- Crosshair -->
         <div class="crosshair">
           <svg width="60" height="60" viewBox="0 0 60 60">
-            <circle cx="30" cy="30" r="2" fill="white"/>
-            <line x1="20" y1="30" x2="26" y2="30" stroke="white" stroke-width="2"/>
-            <line x1="34" y1="30" x2="40" y2="30" stroke="white" stroke-width="2"/>
-            <line x1="30" y1="20" x2="30" y2="26" stroke="white" stroke-width="2"/>
-            <line x1="30" y1="34" x2="30" y2="40" stroke="white" stroke-width="2"/>
-            <circle id="reload-ring" cx="30" cy="30" r="24" fill="none" stroke="#00ff00" stroke-width="3" stroke-dasharray="144" stroke-dashoffset="0" class="hidden"/>
+            <circle cx="30" cy="30" r="2" fill="white" />
+            <line x1="20" y1="30" x2="26" y2="30" stroke="white" stroke-width="2" />
+            <line x1="34" y1="30" x2="40" y2="30" stroke="white" stroke-width="2" />
+            <line x1="30" y1="20" x2="30" y2="26" stroke="white" stroke-width="2" />
+            <line x1="30" y1="34" x2="30" y2="40" stroke="white" stroke-width="2" />
+            <circle id="reload-ring" cx="30" cy="30" r="24" fill="none" stroke="#00ff00" stroke-width="3"
+              stroke-dasharray="144" stroke-dashoffset="0" class="hidden" />
           </svg>
         </div>
 
@@ -131,4 +138,5 @@
 
   <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>
