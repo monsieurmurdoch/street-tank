@@ -1,7 +1,11 @@
 /**
  * Third-person camera following the tank.
  * Uses Cesium heading convention: 0 = North, positive = clockwise.
- * Positioned close behind/above the tank for a street-level feel.
+ *
+ * Features:
+ *  - Smooth position lerp with separate horizontal/vertical rates
+ *  - Dynamic zoom-out during large elevation changes
+ *  - Ground clearance to prevent clipping into buildings
  */
 class CameraController {
   constructor(viewer, tank) {
@@ -10,17 +14,24 @@ class CameraController {
     this.tank = tank;
 
     // 3rd-person parameters
-    this.distance = 25;       // meters behind the tank (horizontal)
-    this.baseHeight = 10;     // base meters above the tank
-    this.heightOffset = 0;    // dynamic height offset adjusted by user
-    this.minHeightOffset = -5; // lowest camera can go relative to base
-    this.maxHeightOffset = 40; // highest camera can go
-    this.lookAtHeight = 3;    // aim camera at this height above tank base
+    this.distance = 25;        // base meters behind the tank (horizontal)
+    this.baseHeight = 10;      // base meters above the tank
+    this.heightOffset = 0;     // user-adjustable height offset
+    this.minHeightOffset = -5;
+    this.maxHeightOffset = 40;
+    this.lookAtHeight = 3;     // aim camera at this height above tank base
 
-    this.smoothFactor = 6;
+    // Smoothing
+    this.horizontalSmooth = 6;  // Horizontal follow speed
+    this.verticalSmooth = 3;    // Vertical follow speed (slower = smoother on elevation changes)
     this.currentPosition = null;
-
     this.cameraHeading = undefined;
+
+    // Elevation change tracking
+    this.lastTankHeight = null;
+    this.verticalSpeed = 0;         // Current vertical velocity of the tank (m/s)
+    this.dynamicDistanceBoost = 0;  // Extra zoom-out distance during fast vertical movement
+    this.maxDistanceBoost = 20;     // Max additional distance during elevation transitions
   }
 
   update(deltaTime, input) {
@@ -34,34 +45,50 @@ class CameraController {
       this.cameraHeading = this.tank.heading;
     }
 
-    // Smoothly follow the tank's heading so camera stays behind it
+    // ── Track vertical speed for adaptive smoothing ──
+    const tankCarto = Cesium.Cartographic.fromCartesian(tankPosition);
+    const tankHeight = tankCarto ? tankCarto.height : 0;
+
+    if (this.lastTankHeight !== null) {
+      const heightDelta = tankHeight - this.lastTankHeight;
+      // Smooth the vertical speed estimate
+      this.verticalSpeed = this.verticalSpeed * 0.7 + (heightDelta / Math.max(deltaTime, 0.001)) * 0.3;
+    }
+    this.lastTankHeight = tankHeight;
+
+    // Dynamic distance boost: zoom out when tank is moving vertically fast
+    const absVertSpeed = Math.abs(this.verticalSpeed);
+    const targetBoost = absVertSpeed > 5 ? Math.min(absVertSpeed * 0.8, this.maxDistanceBoost) : 0;
+    this.dynamicDistanceBoost += (targetBoost - this.dynamicDistanceBoost) * 2.0 * deltaTime;
+
+    // ── Heading follow ──
     let headingDiff = this.tank.heading - this.cameraHeading;
     while (headingDiff > Math.PI) headingDiff -= Math.PI * 2;
     while (headingDiff < -Math.PI) headingDiff += Math.PI * 2;
     this.cameraHeading += headingDiff * 2.0 * deltaTime;
 
-    // Edge-of-screen camera orbit (manual override)
+    // Edge-of-screen camera orbit
     if (input && input.edgeRotate) {
       this.cameraHeading -= input.edgeRotate * 1.5 * deltaTime;
     }
 
-    // Pitch control (manual override)
+    // Pitch control
     if (input && input.edgePitch) {
       this.heightOffset += input.edgePitch * 15.0 * deltaTime;
-      // Clamp height offset
       this.heightOffset = Math.max(this.minHeightOffset, Math.min(this.maxHeightOffset, this.heightOffset));
     }
 
-    // Compute camera position: directly behind the tank at a set horizontal
-    // distance and a set height, without pitch-based offsets.
+    // ── Compute desired camera position ──
     const enu = Cesium.Transforms.eastNorthUpToFixedFrame(tankPosition);
     const rot = new Cesium.Matrix3();
     Cesium.Matrix4.getMatrix3(enu, rot);
 
-    // Camera behind the heading direction: -sin(h), -cos(h) in ENU
-    const offsetEast = -Math.sin(this.cameraHeading) * this.distance;
-    const offsetNorth = -Math.cos(this.cameraHeading) * this.distance;
-    const offsetUp = this.baseHeight + this.heightOffset;
+    const effectiveDistance = this.distance + this.dynamicDistanceBoost;
+    const effectiveHeight = this.baseHeight + this.heightOffset + this.dynamicDistanceBoost * 0.5;
+
+    const offsetEast = -Math.sin(this.cameraHeading) * effectiveDistance;
+    const offsetNorth = -Math.cos(this.cameraHeading) * effectiveDistance;
+    const offsetUp = effectiveHeight;
 
     const localOffset = new Cesium.Cartesian3(offsetEast, offsetNorth, offsetUp);
     const worldOffset = new Cesium.Cartesian3();
@@ -71,17 +98,41 @@ class CameraController {
       tankPosition, worldOffset, new Cesium.Cartesian3()
     );
 
+    // ── Smooth follow with separate horizontal/vertical rates ──
     if (!this.currentPosition) {
-      // Snap to desired position on first frame (no lerp from far away)
       this.currentPosition = Cesium.Cartesian3.clone(desiredPosition);
     }
 
-    const lerpFactor = 1 - Math.exp(-this.smoothFactor * deltaTime);
-    this.currentPosition = Cesium.Cartesian3.lerp(
-      this.currentPosition, desiredPosition, lerpFactor, new Cesium.Cartesian3()
-    );
+    // Adaptive smoothing: slow down vertical follow during big elevation changes
+    const vertSmooth = absVertSpeed > 10
+      ? Math.max(1.5, this.verticalSmooth - absVertSpeed * 0.05)
+      : this.verticalSmooth;
 
-    // Ground clearance check to prevent clipping into terrain (Blue Void)
+    // Compute desired position in cartographic for split smoothing
+    const desiredCarto = Cesium.Cartographic.fromCartesian(desiredPosition);
+    const currentCarto = Cesium.Cartographic.fromCartesian(this.currentPosition);
+
+    if (desiredCarto && currentCarto) {
+      const hLerp = 1 - Math.exp(-this.horizontalSmooth * deltaTime);
+      const vLerp = 1 - Math.exp(-vertSmooth * deltaTime);
+
+      // Horizontal: fast tracking
+      currentCarto.longitude += (desiredCarto.longitude - currentCarto.longitude) * hLerp;
+      currentCarto.latitude += (desiredCarto.latitude - currentCarto.latitude) * hLerp;
+
+      // Vertical: slower, smoother tracking
+      currentCarto.height += (desiredCarto.height - currentCarto.height) * vLerp;
+
+      this.currentPosition = Cesium.Cartographic.toCartesian(currentCarto);
+    } else {
+      // Fallback: uniform lerp
+      const lerpFactor = 1 - Math.exp(-this.horizontalSmooth * deltaTime);
+      this.currentPosition = Cesium.Cartesian3.lerp(
+        this.currentPosition, desiredPosition, lerpFactor, new Cesium.Cartesian3()
+      );
+    }
+
+    // ── Ground clearance ──
     const camCarto = Cesium.Cartographic.fromCartesian(this.currentPosition);
     if (camCarto) {
       let groundHeight = undefined;
@@ -89,21 +140,21 @@ class CameraController {
       try {
         const exclude = [];
         if (this.tank.hullEntity) exclude.push(this.tank.hullEntity);
-
         groundHeight = this.viewer.scene.sampleHeight(camCarto, exclude, 0.2);
       } catch (e) {
-        // ignore errors
+        // ignore
       }
 
       if (groundHeight === undefined) {
         groundHeight = this.viewer.scene.globe.getHeight(camCarto);
       }
 
-      const minClearance = 2.0;
+      const minClearance = 3.0;
       if (groundHeight !== undefined) {
         const minCameraHeight = groundHeight + minClearance;
         if (camCarto.height < minCameraHeight) {
-          camCarto.height = minCameraHeight;
+          // Smoothly push camera up rather than snapping
+          camCarto.height += (minCameraHeight - camCarto.height) * Math.min(1.0, 4.0 * deltaTime);
           this.currentPosition = Cesium.Cartographic.toCartesian(camCarto);
         }
       }
@@ -111,7 +162,7 @@ class CameraController {
 
     this.camera.position = this.currentPosition;
 
-    // Look at tank (at lookAtHeight above its base)
+    // ── Look at tank ──
     const upCol = new Cesium.Cartesian3();
     Cesium.Matrix4.getColumn(enu, 2, upCol);
     Cesium.Cartesian3.normalize(upCol, upCol);
