@@ -265,22 +265,31 @@ class Game {
   }
 
   async loadArena(arenaId) {
-    // Try to load pre-cached arena data
+    // Dynamically import arena JSON (Vite bundles these at build time)
+    const arenaModules = {
+      manhattan: () => import('../arenas/manhattan.json'),
+      sf: () => import('../arenas/sf.json'),
+      london: () => import('../arenas/london.json'),
+      void: () => import('../arenas/void.json')
+    };
+
     try {
-      const response = await fetch(`/src/arenas/${arenaId}.json`);
-      if (response.ok) {
-        this.arena = await response.json();
+      const loader = arenaModules[arenaId];
+      if (loader) {
+        const module = await loader();
+        this.arena = module.default || module;
         console.log('Arena loaded:', this.arena.name);
         return;
       }
     } catch (e) {
-      console.warn('Failed to load arena data, using defaults');
+      console.warn('Failed to load arena data:', e.message);
     }
 
     // Fallback arena data (Manhattan)
     this.arena = {
       id: arenaId,
       name: arenaId.charAt(0).toUpperCase() + arenaId.slice(1),
+      groundLevel: 5,
       bounds: {
         south: 40.748, west: -73.990, north: 40.758, east: -73.978
       },
