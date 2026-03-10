@@ -45,11 +45,11 @@ class Game {
     this.soloMode = !roomId; // will be overridden by network connect attempt
 
     try {
+      // Load arena data first (initViewer needs arena config)
+      await this.loadArena(arenaId);
+
       // Initialize CesiumJS viewer
       await this.initViewer();
-
-      // Load arena data
-      await this.loadArena(arenaId);
 
       // Initialize ground clamper with arena's ground level (fallback)
       this.groundClamper = new GroundClamper(this.viewer, this.arena.groundLevel);
