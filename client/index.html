@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STREET ARMOR - Tank Combat</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="loading-content">
+        <h1 class="game-title">STREET ARMOR</h1>
+        <p class="loading-text">Initializing...</p>
+        <div class="loading-bar">
+          <div class="loading-fill" id="loading-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry Screen (replaces old lobby) -->
+    <div id="lobby-screen" class="lobby-screen hidden">
+      <div class="lobby-content">
+        <h1 class="game-title">STREET ARMOR</h1>
+        <p class="lobby-subtitle">Tank Combat on Real World Streets</p>
+
+        <div class="lobby-section">
+          <h2>Select Arena</h2>
+          <div class="arena-grid" id="arena-grid">
+            <button class="arena-card selected" data-arena="manhattan">
+              <h3>Manhattan</h3>
+              <p>New York City</p>
+            </button>
+            <button class="arena-card" data-arena="sf">
+              <h3>San Francisco</h3>
+              <p>Financial District</p>
+            </button>
+            <button class="arena-card" data-arena="london">
+              <h3>London</h3>
+              <p>City of London</p>
+            </button>
+          </div>
+        </div>
+
+        <div class="lobby-section">
+          <h2>Your Name</h2>
+          <input type="text" id="player-name" class="name-input" placeholder="Tank Commander" maxlength="16">
+        </div>
+
+        <div class="lobby-section">
+          <button id="enter-btn" class="btn btn-primary btn-full">⚔ Enter Battle</button>
+          <p id="connection-status" style="text-align:center; margin-top:8px; color:#888; font-size:0.85em;"></p>
+        </div>
+
+        <div class="lobby-controls-help">
+          <p>WASD to drive &bull; Mouse to aim &bull; Click or Space to fire &bull; R to reset position</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Container -->
+    <div id="game-container" class="game-container hidden">
+      <div id="cesium-container"></div>
+
+      <!-- HUD -->
+      <div id="hud" class="hud">
+        <!-- Health Bar -->
+        <div class="hud-health">
+          <div class="health-bar">
+            <div class="health-fill" id="health-fill"></div>
+          </div>
+          <span class="health-text" id="health-text">100</span>
+        </div>
+
+        <!-- Crosshair -->
+        <div class="crosshair">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <circle cx="30" cy="30" r="2" fill="white"/>
+            <line x1="20" y1="30" x2="26" y2="30" stroke="white" stroke-width="2"/>
+            <line x1="34" y1="30" x2="40" y2="30" stroke="white" stroke-width="2"/>
+            <line x1="30" y1="20" x2="30" y2="26" stroke="white" stroke-width="2"/>
+            <line x1="30" y1="34" x2="30" y2="40" stroke="white" stroke-width="2"/>
+            <circle id="reload-ring" cx="30" cy="30" r="24" fill="none" stroke="#00ff00" stroke-width="3" stroke-dasharray="144" stroke-dashoffset="0" class="hidden"/>
+          </svg>
+        </div>
+
+        <!-- Kill Feed -->
+        <div class="kill-feed" id="kill-feed"></div>
+
+        <!-- Player Count -->
+        <div class="player-count">
+          <span id="player-count">Connecting...</span>
+        </div>
+
+        <!-- Round Timer -->
+        <div class="round-timer">
+          <span id="round-timer">∞</span>
+        </div>
+
+        <!-- Minimap -->
+        <div class="minimap">
+          <canvas id="minimap-canvas" width="150" height="150"></canvas>
+        </div>
+      </div>
+
+      <!-- Scoreboard (Tab) -->
+      <div id="scoreboard" class="scoreboard hidden">
+        <div class="scoreboard-content">
+          <h2>Scoreboard</h2>
+          <table class="scoreboard-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Kills</th>
+                <th>Deaths</th>
+                <th>K:D</th>
+              </tr>
+            </thead>
+            <tbody id="scoreboard-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Google Maps Attribution -->
+    <div id="cesium-credit-container"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
